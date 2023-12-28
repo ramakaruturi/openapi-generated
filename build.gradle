@@ -1,0 +1,83 @@
+plugins {
+    id 'java'
+    id "org.openapi.generator" version "7.2.0"
+}
+
+group = 'org.example'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+compileJava {
+    dependsOn "generate"
+    options.encoding = "UTF-8"
+    options.compilerArgs << "-parameters"
+}
+
+dependencies {
+    implementation 'jakarta.ws.rs:all:3.1.0'
+    implementation 'jakarta.ws.rs:jakarta.ws.rs-api:3.1.0'
+    implementation 'jakarta.validation:jakarta.validation-api:3.0.2'
+    implementation 'jakarta.annotation:jakarta.annotation-api:2.1.1'
+
+    compileOnly "org.openapitools:jackson-databind-nullable:0.2.6"
+    compileOnly 'org.projectlombok:lombok:1.18.22'
+    annotationProcessor 'org.projectlombok:lombok:1.18.22'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+task generatePetStoreV1Api(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask, group: "generate") {
+    mustRunAfter processResources
+    generatorName = "jaxrs-spec"
+    inputSpec = "$rootDir/src/main/resources/petstore.yaml".toString()
+    outputDir = "$rootDir".toString()
+    apiPackage = "org.example.api.specs.v1.petstore.apis"
+    modelPackage = "org.example.api.specs.v1.petstore.models"
+    configOptions = [
+            sourceFolder           : "src/generated/java",
+            modelDocs              : "false",
+            dateLibrary            : "java8",
+            additionalModelTypeAnnotations: "@lombok.Data @lombok.NoArgsConstructor @lombok.AllArgsConstructor @lombok.Builder",
+            interfaceOnly          : "true",
+            returnResponse         : "true",
+            useSwaggerAnnotations  : "false",
+            openApiSpecFileLocation: "",
+            useTags                : "true",
+            hideGenerationTimestamp: "true",
+            useJakartaEe           : "true",
+            sortParamsByRequiredFlag: "false"
+    ]
+    doNotTrackState("See https://github.com/springdoc/springdoc-openapi-gradle-plugin/issues/102")
+}
+
+task generate(description: "Generates all API models based on OpenAPI specs", group: "generate") {
+    dependsOn processResources,
+            generatePetStoreV1Api
+}
+
+clean.doFirst {
+    println "Clean OpenAPI Generator Metadata, Generated files ${projectDir}/src/generated/"
+    delete "${projectDir}/src/generated/"
+    delete "${projectDir}/pom.xml"
+    delete "${projectDir}/README.md"
+    delete "${projectDir}/.openapi-generator/"
+    delete "${projectDir}/.openapi-generator-ignore"
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ["$projectDir/src/generated/java"]
+        }
+        resources {
+            srcDirs = ["$projectDir/src/main/resources"]
+        }
+    }
+}
